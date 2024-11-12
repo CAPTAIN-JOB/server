@@ -1,79 +1,74 @@
-from app import create_app, db
-from models import *
-from datetime import datetime, timedelta
+# seed.py
+from app import create_app  # Import the app factory function
+from extensions import db  # Import db from extensions.py
+from models import Event, Disease, Pay  # Import the models
+from datetime import datetime
 
+app = create_app()  # Create an app instance
 
-app = create_app()
+def seed_data():
+    with app.app_context():  # Set up the application context
+        # Clear existing data
+        db.session.query(Event).delete()
+        db.session.query(Disease).delete()
+        db.session.query(Pay).delete()
+        
+        # Seed Event data
+        events = [
+            Event(
+                title="Health Awareness Workshop",
+                description="A workshop to educate about healthy living.",
+                date=datetime(2024, 12, 15, 10, 0),
+                banner="banner1.jpg",
+                created_by_user_id=1
+            ),
+            Event(
+                title="Charity Run for NCDs",
+                description="Fundraising event to support NCD patients.",
+                date=datetime(2024, 12, 20, 8, 30),
+                banner="banner2.jpg",
+                created_by_user_id=2
+            ),
+        ]
 
-with app.app_context():
-    # Drop all tables and recreate them 
-    db.drop_all()
-    db.create_all()
+        # Seed Disease data
+        diseases = [
+            Disease(
+                name="Diabetes",
+                description="A chronic condition that affects blood sugar regulation.",
+                symptoms="Increased thirst, frequent urination, fatigue.",
+                prevention_tips="Maintain a healthy diet, exercise regularly, monitor blood sugar levels."
+            ),
+            Disease(
+                name="Hypertension",
+                description="High blood pressure often with no noticeable symptoms.",
+                symptoms="Headaches, shortness of breath, nosebleeds.",
+                prevention_tips="Reduce salt intake, exercise, avoid excessive alcohol."
+            ),
+        ]
 
-    # Seed Users
-    users = [
-        User(name="Alice Johnson", username="alice", email="alice@gmail.com", password="password123"),
-        User(name="Bob Smith", username="bob", email="bob@gmail.com", password="password345"),
-        User(name="Charlie Brown", username="charlie", email="charlie@gmail.com", password="password678"),
-    ]
-    db.session.add_all(users)
-    db.session.commit()
+        # Seed Pay data
+        payments = [
+            Pay(
+                transaction_id="TX123456789",
+                amount=150.0,
+                phone_number="254712345678",
+                status="Completed"
+            ),
+            Pay(
+                transaction_id="TX987654321",
+                amount=300.0,
+                phone_number="254723456789",
+                status="Pending"
+            ),
+        ]
 
-    print(f"Seeded {len(users)} users.")
+        # Add data to session and commit
+        db.session.bulk_save_objects(events)
+        db.session.bulk_save_objects(diseases)
+        db.session.bulk_save_objects(payments)
+        db.session.commit()
+        print("Data seeded successfully.")
 
-    # Seed Diseases
-    diseases = [
-        Disease(
-            name="Malaria",
-            description="A disease caused by a plasmodium parasite, transmitted by the bite of infected mosquitoes.",
-            symptoms="Fever, chills, sweating, headaches.",
-            prevention_tips="Use mosquito nets, insect repellents, and take antimalarial drugs.",
-        ),
-        Disease(
-            name="COVID-19",
-            description="A contagious disease caused by the SARS-CoV-2 virus.",
-            symptoms="Fever, cough, fatigue, loss of taste or smell.",
-            prevention_tips="Wear masks, maintain social distance, and get vaccinated.",
-        ),
-        Disease(
-            name="Diabetes",
-            description="A chronic condition characterized by high blood sugar levels.",
-            symptoms="Increased thirst, frequent urination, fatigue.",
-            prevention_tips="Maintain a healthy diet, exercise regularly, monitor blood sugar levels.",
-        ),
-    ]
-    db.session.add_all(diseases)
-    db.session.commit()
-
-    print(f"Seeded {len(diseases)} diseases.")
-
-    # Seed Events
-    events = [
-        Event(
-            title="Health Awareness Seminar",
-            description="A seminar to discuss and spread awareness about common health issues.",
-            date=datetime.now() + timedelta(days=5),
-            banner="https://plus.unsplash.com/premium_photo-1705267936105-90b76568cb17?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTN8fGhlYWx0aCUyMGF3YXJlbmVzcyUyMHNlbWluYXJ8ZW58MHx8MHx8fDA%3D",
-            created_by_user_id=1,
-        ),
-        Event(
-            title="Malaria Prevention Workshop",
-            description="A workshop to educate people about malaria prevention techniques.",
-            date=datetime.now() + timedelta(days=10),
-            banner="https://media.istockphoto.com/id/1326646787/photo/doctors-explaining-telemedicine-to-patient-in-rural-area.webp?a=1&b=1&s=612x612&w=0&k=20&c=wf6zeU-LthsKgC2nn2peTtU1FemNaufDZNBv0BlkZdM=",
-            created_by_user_id=2,
-        ),
-        Event(
-            title="COVID-19 Vaccination Drive",
-            description="A community vaccination drive to combat the spread of COVID-19.",
-            date=datetime.now() + timedelta(days=15),
-            banner="https://plus.unsplash.com/premium_photo-1661515590895-e2f4d9d16fbb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Y292aWQlMjB2YWNjaW5hdGlvbiUyMGRyaXZlfGVufDB8fDB8fHww",
-            created_by_user_id=3,
-        ),
-    ]
-    db.session.add_all(events)
-    db.session.commit()
-
-    print(f"Seeded {len(events)} events.")
-
-    print("Seeding completed!")
+if __name__ == "__main__":
+    seed_data()

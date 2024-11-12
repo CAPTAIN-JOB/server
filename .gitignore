@@ -1,0 +1,26 @@
+# Python bytecode files
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+.env/
+.env
+# Flask / Django logs
+*.log
+
+# SQLite database files
+*.sqlite3
+*.db
+
+# IDE and editor files
+.vscode/
+.idea/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Configuration files
+*.env
