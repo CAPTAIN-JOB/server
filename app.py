@@ -56,6 +56,12 @@ def create_app():
     
  
     # Events Routes
+
+    @app.route('/')
+    @jwt_required()
+    def index():
+        return "Welcome to the Non Communicable Diseases"
+    
     @app.route('/events', methods=['GET'])
     @jwt_required()
     def get_events():
@@ -80,15 +86,19 @@ def create_app():
             event_date = datetime.strptime(data.get('date'), "%Y-%m-%d").date()
         except (ValueError, TypeError):
             return make_response(jsonify({"error": "Invalid date format. Use YYYY-MM-DD."}), 400)
-    
+        created_by_user_id = get_jwt_identity()
+        if not created_by_user_id:
+            return make_response(jsonify({"error": "User ID missing from token."}), 400)
+        
         new_event = Event(
-            title=data.get('title'),
-            description=data.get('description'),
-            date=event_date,
-            banner=data.get('banner'),
-            created_by_user_id=data.get('created_by_user_id')
-        )
-    
+        title=data.get('title'),
+        description=data.get('description'),
+        date=event_date,
+        banner=data.get('banner'),
+        created_by_user_id=created_by_user_id  # Set from token
+    )
+ 
+         
         db.session.add(new_event)
         db.session.commit()
         return make_response(jsonify(new_event.to_dict())), 201
