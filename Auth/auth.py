@@ -2,12 +2,20 @@
 import jwt
 import datetime
 
-from flask import Blueprint, request, jsonify,current_app
+from flask_jwt_extended import JWTManager, create_refresh_token, create_access_token, jwt_required, get_jwt_identity, unset_jwt_cookies
+
+
+from flask import Blueprint, request, jsonify,current_app,make_response
 from werkzeug.security import generate_password_hash,check_password_hash
 from extensions import db
 from models import User
 
 bp_auth = Blueprint("auth", __name__)
+
+
+
+
+
 
 @bp_auth.route('/register', methods=['POST'])
 def register():
@@ -31,41 +39,6 @@ def register():
 
     return jsonify({"message": "User registered successfully"}), 201
 
-    
-# @bp_auth.route('/login', methods=['POST'])
-# def login():
-#     # Retrieve JSON data
-#     data = request.get_json()
-    
-#     # Check if data exists
-#     if not data:
-#         return jsonify({"error": "Request body must be JSON"}), 400
-
-#     # Extract email and password
-#     email = data.get('email')
-#     password = data.get('password')
-
-#     # Validate fields
-#     if not (email and password):
-#         return jsonify({"error": "Email and Password are required"}), 400
-
-#     # Find user by email
-#     user = User.query.filter_by(email=email).first()
-    
-#     # Check if user exists and password is correct
-#     if user and check_password_hash(user.password, password):
-#         # Generate JWT token
-#         token = jwt.encode(
-#             {
-#                 'user_id': user.id,
-#                 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-#             },
-#             current_app.config['SECRET_KEY'],
-#             algorithm="HS256"
-#         )
-#         return jsonify({"message": "Login successful", "token": token}), 200
-#     else:
-#         return jsonify({"error": "Invalid email or password"}), 401
 
 
 @bp_auth.route('/login', methods=['POST'])
@@ -77,29 +50,25 @@ def login():
     if not data:
         return jsonify({"error": "Request body must be JSON"}), 400
 
-    # Extract email and password
     email = data.get('email')
     password = data.get('password')
 
-    # Validate fields
     if not (email and password):
         return jsonify({"error": "Email and Password are required"}), 400
 
-    # Find user by email
     user = User.query.filter_by(email=email).first()
     
-    # Check if user exists and password is correct
     if user and check_password_hash(user.password, password):
-        # Generate JWT token and decode it to a string
-        token = jwt.encode(
-            {
-                'user_id': user.id,
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-            },
-            current_app.config['SECRET_KEY'],
-            algorithm="HS256"
-        ).decode('utf-8')  # Decode bytes to string
-        
-        return jsonify({"message": "Login successful", "token": token}), 200
+        access_token = create_access_token(identity=user.id) 
+        refresh_token = create_refresh_token(identity=user.id) 
+        return make_response({
+            'msg': 'Login successful',
+            'tokens': {
+                "access_token": access_token,
+                "refresh_token": refresh_token
+            }
+        }, 200)
+         
+        # return jsonify({"message": "Login successful", "token": token}), 200
     else:
         return jsonify({"error": "Invalid email or password"}), 401
