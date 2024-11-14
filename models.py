@@ -65,3 +65,22 @@ class Pay(db.Model, SerializerMixin):
     phone_number = db.Column(db.String(15),nullable=False)
     status = db.Column(db.String(20),nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+
+
+class Transaction(db.Model):
+    __tablename__ = 'transactions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    transaction_id = db.Column(db.String(50), unique=True, nullable=False)
+    phone_number = db.Column(db.String(20), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="Pending")  
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+
+    def __init__(self, transaction_id, phone_number, amount, status="Pending"):
+        self.transaction_id = transaction_id
+        self.phone_number = phone_number
+        self.amount = amount
+        self.status = status
