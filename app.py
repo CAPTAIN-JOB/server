@@ -1,10 +1,12 @@
 # app.py
 from flask import Flask, jsonify, request,make_response
+from requests.auth import HTTPBasicAuth
 import base64
 import requests
 from flask_jwt_extended import JWTManager, create_refresh_token, create_access_token, jwt_required, get_jwt_identity, unset_jwt_cookies
 from extensions import db, migrate
 from Auth.auth import bp_auth
+from Users.user import users_bp
 from datetime import datetime
 # from Mpesa.mpesa import mpesa_bp
 # from Mpesa.mpesa import bp_callback
@@ -20,9 +22,11 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("URL_DB")
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
-    app.config["CALLBACK_URL"] = os.getenv("CALLBACK_URL")
     app.config["CONSUMER_KEY"] = os.getenv("CONSUMER_KEY")
     app.config["CONSUMER_SECRET"] = os.getenv("CONSUMER_SECRET")
+    app.config["SHORTCODE"] = os.getenv("SHORTCODE") 
+    app.config["PASSKEY"] = os.getenv("PASSKEY")  
+    app.config["BASE_URL"] = os.getenv("BASE_URL")
 
     # Initialize extensions with app
     db.init_app(app)
@@ -31,7 +35,7 @@ def create_app():
 
     # Register blueprints
     app.register_blueprint(bp_auth, url_prefix='/auth')
-    # app.register_blueprint(bp_auth)
+    app.register_blueprint(users_bp)
     # app.register_blueprint(mpesa_bp, url_prifix = '/pay')
     # app.register_blueprint(bp_callback)
     
@@ -63,116 +67,106 @@ def create_app():
         token = db.session.query(TokenBlocklist).filter(TokenBlocklist.jti == jti).scalar()
         return token is not None
     
-  
-  
-  
-  
-  
-    # Function to generate the MPESA access token
-    def get_access_token():
-        consumer_key = app.config['CONSUMER_KEY']
-        consumer_secret = app.config['CONSUMER_SECRET']
-        auth_url = f"{app.config['MPESA_API_URL']}/oauth/v1/generate?grant_type=client_credentials"
+   
 
-        response = requests.get(auth_url, auth=(consumer_key, consumer_secret))
-        if response.status_code == 200:
-            return response.json().get('access_token')
-        else:
-            return None
-  
-  
-    # init payment
-    def lipa_na_mpesa(amount,phone_number):
-        access_token = get_access_token
-        
-        if not access_token:
-            return {"error": "Unable to generate access token"}
-        
-        # timestamp = datetime.datetime.now()strftime("%Y%m%d%H%M%S")
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        password = base64.b64encode(
-            f"{app.config['MPESA_SHORTCODE']}{app.config['MPESA_PASSKEY']}{timestamp}".encode()
-        ).decode('utf-8')
-        
-        
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json"
-        }
-    
+    def get_access_token():
+        endpoint = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
+        response = requests.get(endpoint, auth=HTTPBasicAuth(app.config["CONSUMER_KEY"], app.config["CONSUMER_SECRET"]) )
+        return response.json().get('access_token')
+
+    @app.route('/donate', methods=['POST'])
+    @jwt_required()
+    def donate():
+        data = request.get_json()
+        # user = data.get('name')
+        amount = data.get('amount', 1)  
+        phone_number = data.get('phone_number') 
+
+        if not phone_number.startswith("254"):
+            phone_number = "254" + phone_number[-9:]
+
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        password_str = f"{app.config['SHORTCODE']}{app.config['PASSKEY'] }{timestamp}"
+        password = base64.b64encode(password_str.encode()).decode('utf-8')
+
+        endpoint = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
+        access_token = get_access_token()
+        headers = { "Authorization": f"Bearer {access_token}" }
+
         payload = {
-            "BusinessShortCode": app.config['MPESA_SHORTCODE'],
+            "BusinessShortCode": app.config["SHORTCODE"],
             "Password": password,
             "Timestamp": timestamp,
             "TransactionType": "CustomerPayBillOnline",
             "Amount": amount,
             "PartyA": "0748292218",
-            "PartyB": app.config['MPESA_SHORTCODE'],
+            "PartyB": app.config["SHORTCODE"],
             "PhoneNumber": phone_number,
-            "CallBackURL": app.config['CALLBACK_URL'],
-            "AccountReference": "Donation",
+            "CallBackURL": app.config["BASE_URL"] + "lnmo/callback",
+            "AccountReference": " Non-Communicable Diseases Charity",
             "TransactionDesc": "Charity Donation"
         }
-    
-        response = requests.post(
-            f"{app.config['MPESA_API_URL']}/mpesa/stkpush/v1/processrequest",
-            json=payload,
-            headers=headers
+
+        response = requests.post(endpoint, json=payload, headers=headers)
+
+        response_data = response.json()
+
+        if response_data.get("ResponseCode") == "0":
+            transaction_id = response_data.get("CheckoutRequestID")
+
+        new_transaction = Transaction(
+            transaction_id=transaction_id,
+            phone_number=phone_number,
+            amount=amount,
+            # name=user_name,  # Save user's name
+            status="Pending"  # Initially set to pending
         )
+        db.session.add(new_transaction)
+        db.session.commit()
         
-        return response.json()
-    
         
-    
-    
-    
- 
-    # Events Routes
+        return jsonify(response_data)
 
-    @app.route('/')
-    @jwt_required()
-    def index():
-        return "Welcome to the Non Communicable Diseases"
-    
-    
-    
-    @app.route('/donate' , methods=['POST'])
-    @jwt_required()
-    def pay():
-        data = request.get_json()
-        phone_number = data.get('phone_number')
-        amount = data.get('amount')
 
-        
-        response = lipa_na_mpesa(amount,phone_number)
-
-        return jsonify(response),200
-        
     @app.route('/callback', methods=['POST'])
-    
     def mpesa_callback():
         data = request.get_json()
-        transaction_id = data.get("transaction_id")
-        result_code = data.get("ResultCode")
 
-    # Find the transaction in the database
-        transaction = Transaction.query.filter_by(transaction_id=transaction_id).first()
+        # Extract the status and transaction details from the callback
+        result_code = data.get("Body", {}).get("stkCallback", {}).get("ResultCode")
+        transaction_id = data.get("Body", {}).get("stkCallback", {}).get("CheckoutRequestID")
 
-        if not transaction:
-            return jsonify({"error": "Transaction not found"}), 404
-
-    # Update the status based on the ResultCode
         if result_code == 0:
-            transaction.status = "Completed"
+            # Transaction successful
+            transaction = Transaction.query.filter_by(id=transaction_id).first()
+            if transaction:
+                transaction.status = "Completed"
+                db.session.commit()
+        elif result_code == 1032:  # Assuming 1032 indicates cancellation
+            # Transaction canceled
+            transaction = Transaction.query.filter_by(id=transaction_id).first()
+            if transaction:
+                transaction.status = "Canceled"
+                db.session.commit()
         else:
-            transaction.status = "Failed"
-
-        db.session.commit()
-
-    # Respond to the Daraja API callback
-        return jsonify({"ResultCode": 0, "ResultDesc": "Accepted"})
+            # Other statuses can be handled here
+            pass
+        return jsonify({"ResultCode": 0, "ResultDesc": "Callback received"})
     
-    
+    @app.route('/transactions', methods=['GET'])
+    @jwt_required()
+    def get_transactions():
+        transactions = Transaction.query.all()
+        return jsonify([{
+            "id": tran.id,
+            "phone_number": tran.phone_number,
+            "amount": tran.amount,
+            "status": tran.status,
+            "created_at": tran.created_at
+    } for tran in transactions])
+        
+
+       
     @app.route('/events', methods=['GET'])
     @jwt_required()
     def get_events():

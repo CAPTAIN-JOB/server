@@ -1,5 +1,7 @@
 # models.py
 from extensions import db
+import enum
+from sqlalchemy import Enum
 from sqlalchemy_serializer import SerializerMixin
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -68,6 +70,12 @@ class Pay(db.Model, SerializerMixin):
 
 
 
+ # tryied  this am getting  some  wied errors 
+# class TransactionStatus(enum.Enum):
+#     PENDING = "Pending"
+#     COMPLETED = "Completed"
+#     CANCELLED = "Cancelled"
+
 class Transaction(db.Model):
     __tablename__ = 'transactions'
 
@@ -79,8 +87,4 @@ class Transaction(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
 
-    def __init__(self, transaction_id, phone_number, amount, status="Pending"):
-        self.transaction_id = transaction_id
-        self.phone_number = phone_number
-        self.amount = amount
-        self.status = status
+ 
