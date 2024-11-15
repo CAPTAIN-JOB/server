@@ -1,7 +1,7 @@
 # seed.py
 from app import create_app  # Import the app factory function
 from extensions import db  # Import db from extensions.py
-from models import Event, Disease, Pay  # Import the models
+from models import Event, Disease, Pay, User  # Import the models, including User
 from datetime import datetime
 
 app = create_app()  # Create an app instance
@@ -12,6 +12,13 @@ def seed_data():
         db.session.query(Event).delete()
         db.session.query(Disease).delete()
         db.session.query(Pay).delete()
+        db.session.query(User).delete()
+        
+        # Seed User data
+        users = [
+            User(id=1, username="user1", email="user1@example.com", password="password1"),
+            User(id=2, username="user2", email="user2@example.com", password="password2"),
+        ]
         
         # Seed Event data
         events = [
@@ -64,6 +71,7 @@ def seed_data():
         ]
 
         # Add data to session and commit
+        db.session.bulk_save_objects(users)
         db.session.bulk_save_objects(events)
         db.session.bulk_save_objects(diseases)
         db.session.bulk_save_objects(payments)
