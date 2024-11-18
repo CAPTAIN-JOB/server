@@ -1,5 +1,9 @@
 # app.py
+from Auth.auth import bp_auth
+
 from flask import Flask, jsonify, request,make_response
+from extensions import db, migrate
+
 from requests.auth import HTTPBasicAuth
 import base64
 import os
