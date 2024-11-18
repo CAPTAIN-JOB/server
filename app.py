@@ -1,11 +1,4 @@
 # app.py
-<<<<<<< HEAD
-from flask import Flask
-
-from Auth.auth import bp_auth
-from extensions import db, migrate
-
-=======
 from flask import Flask, jsonify, request,make_response
 from requests.auth import HTTPBasicAuth
 import base64
@@ -20,17 +13,14 @@ from datetime import datetime
 from models import *
 from dotenv import load_dotenv
 import os
->>>>>>> 6680ecb97c8a817f59fa1ac461b3ecf4e171c1e7
 
 def create_app():
 
     load_dotenv()
     
     app = Flask(__name__)
-<<<<<<< HEAD
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///data.db"
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-=======
+    # app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///data.db"
+    # app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("URL_DB")
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
@@ -39,7 +29,7 @@ def create_app():
     app.config["SHORTCODE"] = os.getenv("SHORTCODE") 
     app.config["PASSKEY"] = os.getenv("PASSKEY")  
     app.config["BASE_URL"] = os.getenv("BASE_URL")
->>>>>>> 6680ecb97c8a817f59fa1ac461b3ecf4e171c1e7
+
 
     # Initialize extensions with app
     db.init_app(app)
@@ -47,9 +37,7 @@ def create_app():
     jwt = JWTManager(app)
 
     # Register blueprints
-<<<<<<< HEAD
     app.register_blueprint(bp_auth, url_prefix="/auth")
-=======
     app.register_blueprint(bp_auth, url_prefix='/auth')
     app.register_blueprint(users_bp)
     # app.register_blueprint(mpesa_bp, url_prifix = '/pay')
@@ -284,19 +272,11 @@ def create_app():
         db.session.delete(disease)
         db.session.commit()
         return jsonify({"message": "Disease deleted successfully"}), 200
->>>>>>> 6680ecb97c8a817f59fa1ac461b3ecf4e171c1e7
 
     return app
 
 
-<<<<<<< HEAD
 # Only for running locally
 if __name__ == "__main__":
     app = create_app()
     app.run(debug=True)
-=======
-
-# if __name__ == "__main__":
-#     app = create_app()
-#     app.run(port=5500, debug=True)
->>>>>>> 6680ecb97c8a817f59fa1ac461b3ecf4e171c1e7
