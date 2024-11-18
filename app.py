@@ -1,50 +1,39 @@
 # app.py
-from Auth.auth import bp_auth
-
-from flask import Flask, jsonify, request,make_response
-from extensions import db, migrate
-
-from requests.auth import HTTPBasicAuth
 import base64
 import os
 from datetime import datetime
+
 import requests
 from dotenv import load_dotenv
 from flask import Flask, jsonify, make_response, request
-from flask_jwt_extended import (
-    JWTManager,
-    create_access_token,
-    create_refresh_token,
-    get_jwt_identity,
-    jwt_required,
-    unset_jwt_cookies,
-)
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager, get_jwt_identity, jwt_required
 from requests.auth import HTTPBasicAuth
 
+from Auth.auth import bp_auth
+from extensions import db, migrate
 # from Mpesa.mpesa import mpesa_bp
 # from Mpesa.mpesa import bp_callback
 from models import *
 from Users.user import users_bp
-from dotenv import load_dotenv
-import os
+
 
 def create_app():
 
     load_dotenv()
 
     app = Flask(__name__)
+    CORS(app)
     # app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///data.db"
     # app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("URL_DB")
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("URL_DB")
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
     app.config["CONSUMER_KEY"] = os.getenv("CONSUMER_KEY")
     app.config["CONSUMER_SECRET"] = os.getenv("CONSUMER_SECRET")
     app.config["SHORTCODE"] = os.getenv("SHORTCODE")
     app.config["PASSKEY"] = os.getenv("PASSKEY")
     app.config["BASE_URL"] = os.getenv("BASE_URL")
-
-
 
     # Initialize extensions with app
     db.init_app(app)
@@ -282,77 +271,84 @@ def create_app():
         db.session.commit()
         return jsonify({"message": "Disease deleted successfully"}), 200
 
-        
-        
-    @app.route('/get-affected-areas', methods=['GET'])
+    @app.route("/get-affected-areas", methods=["GET"])
     def get_affected_areas():
-      
+
         areas = AffectedArea.query.all()
 
         # Serialize using a to_dict method (ensure it's implemented in your model)
         return jsonify([area.to_dict() for area in areas]), 200
 
-
-    @app.route('/affected-area', methods=['POST'])
+    @app.route("/affected-area", methods=["POST"])
+    @jwt_required()
     def save_affected_area():
-       
+
         data = request.get_json()  # Ensure JSON payload
         if not data:
             return jsonify({"error": "Invalid or missing JSON payload"}), 400
 
-        name = data.get('name', 'Unnamed Area')
-        location = data.get('location', 'Unknown Location')
-        latitude = data.get('latitude')
-        longitude = data.get('longitude')
-        disease_count = data.get('disease_count', 0)  
+        name = data.get("name", "Unnamed Area")
+        location = data.get("location", "Unknown Location")
+        latitude = data.get("latitude")
+        longitude = data.get("longitude")
+        disease_count = data.get("disease_count", 0)
 
-    
         if latitude is None or longitude is None:
             return jsonify({"error": "Latitude and Longitude are required"}), 400
-
 
         new_area = AffectedArea(
             name=name,
             location=location,
             latitude=latitude,
             longitude=longitude,
-            disease_count=disease_count
+            disease_count=disease_count,
         )
         db.session.add(new_area)
         db.session.commit()
 
-        return jsonify({"message": "Affected area saved successfully", "area_id": new_area.id}), 201
+        return (
+            jsonify(
+                {"message": "Affected area saved successfully", "area_id": new_area.id}
+            ),
+            201,
+        )
 
-
-    @app.route('/save-location', methods=['POST'])
+    @app.route("/save-location", methods=["POST"])
     def save_location():
         data = request.get_json()
         if not data:
             return jsonify({"error": "Invalid or missing JSON payload"}), 400
 
-        latitude = data.get('latitude')
-        longitude = data.get('longitude')
+        latitude = data.get("latitude")
+        longitude = data.get("longitude")
 
         if latitude is None or longitude is None:
             return jsonify({"error": "Latitude and Longitude are required"}), 400
 
-       
         new_location = UserLocation(latitude=latitude, longitude=longitude)
         db.session.add(new_location)
         db.session.commit()
 
-        return jsonify({"message": "Location saved successfully", "location_id": new_location.id}), 201
+        return (
+            jsonify(
+                {
+                    "message": "Location saved successfully",
+                    "location_id": new_location.id,
+                }
+            ),
+            201,
+        )
 
-
-    @app.route('/api/user-locations', methods=['GET'])
+    @app.route("/api/user-locations", methods=["GET"])
     def get_user_locations():
         locations = UserLocation.query.all()
 
         # Convert data into a list of dictionaries
-        result = [{"latitude": loc.latitude, "longitude": loc.longitude} for loc in locations]
+        result = [
+            {"latitude": loc.latitude, "longitude": loc.longitude} for loc in locations
+        ]
 
         return jsonify(result), 200
-
 
     return app
 
