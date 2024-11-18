@@ -11,6 +11,7 @@ from flask_jwt_extended import JWTManager, get_jwt_identity, jwt_required
 from requests.auth import HTTPBasicAuth
 
 from Auth.auth import bp_auth
+from Auth.decorators import auth_role
 from extensions import db, migrate
 # from Mpesa.mpesa import mpesa_bp
 # from Mpesa.mpesa import bp_callback
@@ -184,6 +185,7 @@ def create_app():
 
     @app.route("/events", methods=["GET"])
     @jwt_required()
+    @auth_role("admin")
     def get_events():
         events = Event.query.all()
         return jsonify([event.to_dict() for event in events]), 200
@@ -349,6 +351,37 @@ def create_app():
         ]
 
         return jsonify(result), 200
+
+
+
+
+    @app.route("/users/<int:user_id>/make_admin", methods=["PATCH"])
+    @jwt_required()  # Ensure only authenticated users can perform this action
+    def make_admin(user_id):
+        try:
+            # Get the user by ID
+            user = User.query.get(user_id)
+            if not user:
+                return jsonify({"error": "User not found"}), 404
+
+        # Find or create the "admin" role
+            admin_role = Role.query.filter_by(slug="admin").first()
+            if not admin_role:
+                admin_role = Role(name="Administrator", slug="admin")
+                db.session.add(admin_role)
+                db.session.commit()
+
+        # Assign the "admin" role to the user
+            if admin_role not in user.roles:
+                user.roles.append(admin_role)
+                db.session.commit()
+
+            return jsonify({"message": f"User {user.username} is now an admin."}), 200
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+
 
     return app
 
