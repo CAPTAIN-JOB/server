@@ -281,6 +281,85 @@ def create_app():
         db.session.commit()
         return jsonify({"message": "Disease deleted successfully"}), 200
 
+        
+        
+    @app.route('/get-affected-areas', methods=['GET'])
+    def get_affected_areas():
+      
+        areas = AffectedArea.query.all()
+
+        # Serialize using a to_dict method (ensure it's implemented in your model)
+        return jsonify([area.to_dict() for area in areas]), 200
+
+
+    @app.route('/affected-area', methods=['POST'])
+    def save_affected_area():
+       
+        data = request.get_json()  # Ensure JSON payload
+        if not data:
+            return jsonify({"error": "Invalid or missing JSON payload"}), 400
+
+        name = data.get('name', 'Unnamed Area')
+        location = data.get('location', 'Unknown Location')
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        disease_count = data.get('disease_count', 0)  
+
+    
+        if latitude is None or longitude is None:
+            return jsonify({"error": "Latitude and Longitude are required"}), 400
+
+        # Save the data to the database
+        new_area = AffectedArea(
+            name=name,
+            location=location,
+            latitude=latitude,
+            longitude=longitude,
+            disease_count=disease_count
+        )
+        db.session.add(new_area)
+        db.session.commit()
+
+        return jsonify({"message": "Affected area saved successfully", "area_id": new_area.id}), 201
+
+
+    @app.route('/save-location', methods=['POST'])
+    def save_location():
+        """
+        Save a user's location to the database.
+        """
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid or missing JSON payload"}), 400
+
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+
+        # Validate input
+        if latitude is None or longitude is None:
+            return jsonify({"error": "Latitude and Longitude are required"}), 400
+
+        # Save to the database
+        new_location = UserLocation(latitude=latitude, longitude=longitude)
+        db.session.add(new_location)
+        db.session.commit()
+
+        return jsonify({"message": "Location saved successfully", "location_id": new_location.id}), 201
+
+
+    @app.route('/api/user-locations', methods=['GET'])
+    def get_user_locations():
+        """
+        Retrieve all user locations from the database.
+        """
+        locations = UserLocation.query.all()
+
+        # Convert data into a list of dictionaries
+        result = [{"latitude": loc.latitude, "longitude": loc.longitude} for loc in locations]
+
+        return jsonify(result), 200
+
+
     return app
 
 
