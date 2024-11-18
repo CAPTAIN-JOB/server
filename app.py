@@ -164,14 +164,11 @@ def create_app():
             if transaction:
                 transaction.status = "Completed"
                 db.session.commit()
-        elif result_code == 1032:  # Assuming 1032 indicates cancellation
-            # Transaction canceled
             transaction = Transaction.query.filter_by(id=transaction_id).first()
             if transaction:
                 transaction.status = "Canceled"
                 db.session.commit()
         else:
-            # Other statuses can be handled here
             pass
         return jsonify({"ResultCode": 0, "ResultDesc": "Callback received"})
 
@@ -309,7 +306,7 @@ def create_app():
         if latitude is None or longitude is None:
             return jsonify({"error": "Latitude and Longitude are required"}), 400
 
-        # Save the data to the database
+
         new_area = AffectedArea(
             name=name,
             location=location,
@@ -325,9 +322,6 @@ def create_app():
 
     @app.route('/save-location', methods=['POST'])
     def save_location():
-        """
-        Save a user's location to the database.
-        """
         data = request.get_json()
         if not data:
             return jsonify({"error": "Invalid or missing JSON payload"}), 400
@@ -335,11 +329,10 @@ def create_app():
         latitude = data.get('latitude')
         longitude = data.get('longitude')
 
-        # Validate input
         if latitude is None or longitude is None:
             return jsonify({"error": "Latitude and Longitude are required"}), 400
 
-        # Save to the database
+       
         new_location = UserLocation(latitude=latitude, longitude=longitude)
         db.session.add(new_location)
         db.session.commit()
@@ -349,9 +342,6 @@ def create_app():
 
     @app.route('/api/user-locations', methods=['GET'])
     def get_user_locations():
-        """
-        Retrieve all user locations from the database.
-        """
         locations = UserLocation.query.all()
 
         # Convert data into a list of dictionaries
