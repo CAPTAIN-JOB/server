@@ -13,6 +13,8 @@ from extensions import db
 class User(db.Model, SerializerMixin):
     __tablename__ = "users"
 
+    serialize_rules = ("-roles.users",)
+
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50))
     username = db.Column(db.String(50), unique=True)
@@ -56,6 +58,8 @@ class User(db.Model, SerializerMixin):
 
 class Role(db.Model, SerializerMixin):
     __tablename__ = "roles"
+
+    serialize_rules = ("-users.roles",)
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50), nullable=False)

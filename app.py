@@ -1,4 +1,3 @@
-# app.py
 import base64
 import os
 from datetime import datetime
@@ -191,6 +190,9 @@ def create_app():
         return jsonify([event.to_dict() for event in events]), 200
 
     @app.route("/events/<int:event_id>", methods=["GET"])
+    @jwt_required()
+
+    @auth_role("admin")
     def get_event(event_id):
         event = Event.query.get(event_id)
         if not event:
@@ -199,6 +201,8 @@ def create_app():
 
     @app.route("/events", methods=["POST"])
     @jwt_required()
+    
+    @auth_role("admin")
     def create_event():
 
         data = request.json
@@ -226,6 +230,8 @@ def create_app():
 
     @app.route("/events/<int:event_id>", methods=["DELETE"])
     @jwt_required()
+    @auth_role("admin")
+
     def delete_event(event_id):
         event = Event.query.get(event_id)
         if not event:
@@ -251,6 +257,8 @@ def create_app():
 
     @app.route("/diseases", methods=["POST"])
     @jwt_required()
+    @auth_role("admin")
+
     def create_disease():
         data = request.json
         new_disease = Disease(
@@ -265,6 +273,8 @@ def create_app():
 
     @app.route("/diseases/<int:disease_id>", methods=["DELETE"])
     @jwt_required()
+
+    @auth_role("admin")
     def delete_disease(disease_id):
         disease = Disease.query.get(disease_id)
         if not disease:
@@ -283,6 +293,8 @@ def create_app():
 
     @app.route("/affected-area", methods=["POST"])
     @jwt_required()
+    @auth_role("admin")
+
     def save_affected_area():
 
         data = request.get_json()  # Ensure JSON payload
@@ -357,6 +369,7 @@ def create_app():
 
     @app.route("/users/<int:user_id>/make_admin", methods=["PATCH"])
     @jwt_required()  # Ensure only authenticated users can perform this action
+    @auth_role("admin")
     def make_admin(user_id):
         try:
             # Get the user by ID
