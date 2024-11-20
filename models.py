@@ -86,5 +86,7 @@ class Transaction(db.Model):
     status = db.Column(db.String(20), nullable=False, default="Pending")  
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    
+    
 
  
