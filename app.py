@@ -167,6 +167,7 @@ def create_app():
 
     @app.route("/transactions", methods=["GET"])
     @jwt_required()
+    @auth_role("admin")
     def get_transactions():
         transactions = Transaction.query.all()
         return jsonify(
@@ -183,8 +184,8 @@ def create_app():
         )
 
     @app.route("/events", methods=["GET"])
-    @jwt_required()
-    @auth_role("admin")
+    # @jwt_required()
+
     def get_events():
         events = Event.query.all()
         return jsonify([event.to_dict() for event in events]), 200
@@ -200,8 +201,9 @@ def create_app():
         return jsonify(event.to_dict()), 200
 
     @app.route("/events", methods=["POST"])
+
     @jwt_required()
-    
+    @auth_role("admin")
     @auth_role("admin")
     def create_event():
 
@@ -248,7 +250,7 @@ def create_app():
         return jsonify([disease.to_dict() for disease in diseases]), 200
 
     @app.route("/diseases/<int:disease_id>", methods=["GET"])
-    @jwt_required()
+    # @jwt_required()
     def get_disease(disease_id):
         disease = Disease.query.get(disease_id)
         if not disease:
@@ -273,7 +275,6 @@ def create_app():
 
     @app.route("/diseases/<int:disease_id>", methods=["DELETE"])
     @jwt_required()
-
     @auth_role("admin")
     def delete_disease(disease_id):
         disease = Disease.query.get(disease_id)
