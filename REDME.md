@@ -55,5 +55,5 @@ The backend serves as the foundation for the Project 24 platform, supporting use
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/username/project24-backend.git  
-   cd project24-backend
+  git clone https://github.com/CAPTAIN-JOB/server.git
+   cd server
