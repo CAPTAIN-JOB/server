@@ -13,7 +13,9 @@ from extensions import db
 class User(db.Model, SerializerMixin):
     __tablename__ = "users"
 
-    id = db.Column(db.Integer, primary_key=True)
+    serialize_rules = ("-roles.users",)
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50))
     username = db.Column(db.String(50), unique=True)
     email = db.Column(db.String(120), unique=True)
@@ -25,6 +27,53 @@ class User(db.Model, SerializerMixin):
 
     def check_password(self, password):
         return check_password_hash(self.password, password)
+
+    roles = db.relationship("Role", secondary="user_roles", back_populates="users")
+
+    # Helper func
+    # def has_role(self, role):
+    #     return bool(
+    #         role.query.join(Role.users)
+    #         .filter(User.id == self.id)
+    #         .filter(role.slug == role)
+    #         .count()
+    #         == 1
+    #     )
+
+    # def has_role(self, role_name):
+    #     # Query the Role table to find a role matching the given name
+    #     role = Role.query.filter_by(slug=role_name).first()
+    #     if role and role in self.roles:
+    #         return True
+    #     return False
+
+    def has_role(self, role_name):
+        return (
+            Role.query.filter(
+                Role.users.any(id=self.id), Role.slug == role_name
+            ).count()
+            > 0
+        )
+
+
+class Role(db.Model, SerializerMixin):
+    __tablename__ = "roles"
+
+    serialize_rules = ("-users.roles",)
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(50), nullable=False)
+    slug = db.Column(db.String(50), nullable=False, unique=True)
+
+    users = db.relationship("User", secondary="user_roles", back_populates="roles")
+
+
+# association table
+class UserRole(db.Model):
+    __tablename__ = "user_roles"
+
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), primary_key=True)
+    role_id = db.Column(db.Integer, db.ForeignKey("roles.id"), primary_key=True)
 
 
 class TokenBlocklist(db.Model):
@@ -89,6 +138,11 @@ class Transaction(db.Model):
     transaction_id = db.Column(db.String(50), unique=True, nullable=False)
     phone_number = db.Column(db.String(20), nullable=False)
     amount = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="Pending")  
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    
+    
     status = db.Column(db.String(20), nullable=False, default="Pending")
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
